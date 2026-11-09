@@ -17,3 +17,4 @@ Integrate Azure Blob Storage for event banners
 Implement event category management
 Implement participant enrolment management
 Implement race result management
+Build Participant event browsing and filtering
