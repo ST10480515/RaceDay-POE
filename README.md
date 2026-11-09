@@ -7,3 +7,4 @@ RACEDAY POE
 #Configure Entity Framework Core DbContext
 #Add SQL Server database configuration
 #Implement API authentication and registration
+Implement login and session management
