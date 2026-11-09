@@ -9,3 +9,4 @@ RACEDAY POE
 #Implement API authentication and registration
 Implement login and session management
 Add role-based authorization
+Create MVC API client and cookie handler
