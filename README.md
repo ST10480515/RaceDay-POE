@@ -8,3 +8,4 @@ RACEDAY POE
 #Add SQL Server database configuration
 #Implement API authentication and registration
 Implement login and session management
+Add role-based authorization
