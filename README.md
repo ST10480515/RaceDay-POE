@@ -13,3 +13,4 @@ Create MVC API client and cookie handler
 Implement MVC API service classes
 Build MVC authentication and navigation
 Implement Organiser dashboard and event management
+Integrate Azure Blob Storage for event banners
