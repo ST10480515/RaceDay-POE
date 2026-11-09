@@ -5,3 +5,4 @@ RACEDAY POE
 #Configure API project and dependencies
 #Configure Entity Framework Core DbContext
 #Configure Entity Framework Core DbContext
+#Add SQL Server database configuration
