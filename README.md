@@ -20,3 +20,4 @@ Implement race result management
 Build Participant event browsing and filtering
 Implement Participant events and results pages
 Configure Docker containers for RaceDay
+Add automated build and test workflow
