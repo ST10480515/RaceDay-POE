@@ -1,0 +1,101 @@
+**/.classpath
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/azds.yaml
+**/bin
+**/charts
+**/docker-compose*
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+LICENSE
+README.md
+!**/.gitignore
+!.git/HEAD
+!.git/config
+!.git/packed-refs
+!.git/refs/heads/**
+# RaceDay: starts the MVC site, the API, SQL Server and Azurite (local Azure Blob Storage).
+#   docker compose up --build
+# MVC:     http://localhost:8080
+# Swagger: http://localhost:5294/swagger
+
+name: raceday
+
+x-sa-password: &sa-password "${SA_PASSWORD:-RaceDay_Str0ng!Pass}"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: *sa-password
+    ports:
+      - "14330:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --location /data --loose --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+    volumes:
+      - azuritedata:/data
+
+  api:
+    build:
+      context: ./RaceDayAPI
+      args:
+        DOTNET_VERSION: "8.0"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development   # keeps Swagger switched on for the demo
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=RaceDayAPI;User Id=sa;Password=${SA_PASSWORD:-RaceDay_Str0ng!Pass};TrustServerCertificate=True;"
+      # host.docker.internal lets both the API container and your browser reach Azurite at the same address,
+      # so the image URLs saved in the database open in the browser.
+      AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://host.docker.internal:10000/devstoreaccount1;"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5294:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+
+  mvc:
+    build:
+      context: ./RaceDayMVC
+      args:
+        DOTNET_VERSION: "8.0"
+    environment:
+      # Inside Docker, "localhost" is the container itself, so MVC reaches the API by its service name
+      ApiSettings__BaseUrl: "http://api:8080/"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
+volumes:
+  sqldata:
+  azuritedata:

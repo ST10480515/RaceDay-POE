@@ -1,0 +1,100 @@
+
+
+
+
+services:
+
+  # ==========================================
+  # 1. SQL SERVER DATABASE
+  # ==========================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: raceday-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "RaceDay_Str0ng!Pass"
+    ports:
+      - "14330:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    restart: unless-stopped
+
+  # ==========================================
+  # 2. AZURE BLOB STORAGE (AZURITE)
+  # ==========================================
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: raceday-azurite
+    command: azurite-blob --blobHost 0.0.0.0 --location /data
+    ports:
+      - "10000:10000"
+    volumes:
+      - azuritedata:/data
+    restart: unless-stopped
+
+  # ==========================================
+  # 3. RACEDAY API
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: RaceDayAPI/Dockerfile
+
+    container_name: raceday-api
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=RaceDayAPI;User Id=sa;Password=RaceDay_Str0ng!Pass;TrustServerCertificate=True;"
+
+      AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+
+    ports:
+      - "5294:8080"
+
+    volumes:
+      - api-dpkeys:/root/.aspnet/DataProtection-Keys
+
+    depends_on:
+      - sqlserver
+      - azurite
+
+    restart: unless-stopped
+
+  # ==========================================
+  # 4. RACEDAY MVC WEBSITE
+  # ==========================================
+  racedaymvc:
+    build:
+      context: .
+      dockerfile: RaceDayMVC/Dockerfile
+
+    container_name: raceday-mvc
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+
+      # MVC connects to API using Docker's internal service name
+      ApiSettings__BaseUrl: "http://api:8080/"
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - mvc-dpkeys:/root/.aspnet/DataProtection-Keys
+
+    depends_on:
+      - api
+
+    restart: unless-stopped
+
+# ==========================================
+# 5. PERSISTENT VOLUMES
+# ==========================================
+volumes:
+  sqldata:
+  azuritedata:
+  api-dpkeys:
+  mvc-dpkeys:
